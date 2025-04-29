@@ -160,7 +160,7 @@ pro mcmc_nonlinear_v3
   print,'t0',credible_intervals[6,*]
  
   wdef,1,1400,700
-  title=['R [km]','roi','C1','Vi [km/s]','P_k','percent','t0'] ;'Delta_m'
+  title=['R [km]','roi','C1','Vi [km/s]','P_k','eta','t0'] ;'Delta_m'
   !p.multi=[0,4,2]
   for k=0,6 do begin
     cgHistoplot,samples[k,*],title=title[k],charsize=3
