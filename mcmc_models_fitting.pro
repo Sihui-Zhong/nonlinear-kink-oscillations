@@ -84,6 +84,7 @@ end
 
 function nonlinear_model_v3,t,pars,_extra=_extra
   compile_opt idl2
+  ;7-parameter nonlinear function, the density profile is provided in a pre-computed table.
   ;.compile -v 'sici.pro'
   R = pars[0] ;loop radius ;in km
   H = !dpi*R/4
