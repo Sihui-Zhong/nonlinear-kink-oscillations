@@ -1,9 +1,10 @@
-;SoBAT MCMC fitting with nonlinear damping function by turbulence
+;SoBAT MCMC fitting with nonlinear turbulence damping function
 ;Author: Sihui Zhong (s.zhong3@exeter.ac.uk, sihui.zhong@outlook.com)
+;The function version used in our paper is 'nonlinear_model_v3.pro' and the corresponding fitting procedure is 'mcmc_nonlinear_v3.pro'
 
 function nonlinear_model,t,pars,_extra=_extra
   compile_opt idl2
-  ;9-parameter function describing the transverse oscillations nonlinearily damped by turbulence
+  ;9-parameter function describing the nonlinear transverse oscillations damped by turbulence
   
   R = pars[0] ;loop radius 
   H = !dpi*R/4
@@ -41,51 +42,9 @@ end
 
 function nonlinear_model_v2,t,pars,_extra=_extra
   compile_opt idl2
-  ;7-parameter nonlinear function
-  ;.compile -v 'sici.pro'
-  R = pars[0] ;loop radius in km
-  H = !dpi*R/4
-  roi = pars[1]
-  roe = 1. ;external
-  C1 = pars[2]
-  C2 = sqrt(2)*C1
-  Vi = pars[3] ;initial velocity ; in km/s
-  dV = 1.1*Vi ;delta_V
-  period_k = pars[4]*1d ;period of kink oscillations
-  wk = 2*!dpi/period_k ;wk, angular frequency, =2*!pi/P
-
-  wA = wk * sqrt(roi/roe + 1d)/(sqrt(2)*(roi/roe)^0.25) ;approximate the mean density in the mixing layer as sqrt(roi*roe)
-  wD = (wA-wk)/2.0
-  wS = (wA+wk)/2.0
-  percent = pars[5]
-
-  zeta_max = sqrt(roi*1d) ;mass convervation
-  zeta = zeta_max * percent
-  max_y1 = 1./(sqrt(roi)+1d) ;length /2.
-  delta_m = zeta - max_y1*roi ;don't have to /2. any more
-
-  t0 = pars[6]
-
-  t1 = t-t0
-  M_bar = zeta*(Vi - dV*sqrt(roe)/(sqrt(roi)+sqrt(roe))) ;0.24
-
-  E = 4*R*H*roi ;mass
-  A = E*Vi ;momentum
-  B = 1/(2*H)*C2/sqrt(2)*sqrt(roe)/(sqrt(roi)+sqrt(roe))*(roi*roe)^(0.25)/(sqrt(roi)+sqrt(roe))*dV
-  D = 2*M_bar*C2/sqrt(2)*(roi*roe)^(0.25)/(sqrt(roi)+sqrt(roe))*dV*R/wD
-  G = delta_m/(2*H*roi)*C2/sqrt(2)*(roi*roe)^(0.25)/(sqrt(roi)+sqrt(roe))*dV
-  A1 = A/(E*(G^2))*(-B*G*sin(wk*t1)/wk+(B+G)*(cos(wk/G)*(sici(wk*(t1+1/G)))[1,*]+sin(wk/G)*(sici(wk*(t1+1/G)))[0,*]))
-  A2 = D/(2*E*G)*(-cos(wk/G)*(sici(wk*(t1+1/G)))[0,*]+sin(wk/G)*(sici(wk*(t1+1/G)))[1,*]+$
-    cos(wA/G)*(sici(wA*(t1+1/G)))[0,*]-sin(wA/G)*(sici(wA*(t1+1/G)))[1,*])
-  func = A1+A2-mean(A1+A2) ;A1+A2-A1[0]-A2[0]
-  return,func/1d3 ;in Mm
-
-end
-
-function nonlinear_model_v3,t,pars,_extra=_extra
-  compile_opt idl2
   ;7-parameter nonlinear function, the density profile is provided in a pre-computed table.
-  ;.compile -v 'sici.pro'
+  ;you may need to change your path to the directory include sici.pro or add the path:'/path_to/sici.pro'
+  ;.compile -v 'sici.pro' 
   R = pars[0] ;loop radius ;in km
   H = !dpi*R/4
   roi = pars[1]
@@ -94,10 +53,11 @@ function nonlinear_model_v3,t,pars,_extra=_extra
   C2 = sqrt(2)*C1
   Vi = pars[3] ;initial velocity ;in km/s
   dV = 1.1*Vi ;delta_V
-  period_k = pars[4]*1d ;period of kink oscillations
+  period_k = pars[4]*1d ;period of kink oscillations, in second
   wk = 2*!dpi/period_k ;wk, angular frequency, =2*!pi/P
-  
-  restore,'/home/sihuizhong/Documents/KHI/mcmc/w_A_factor_table.sav' ;rhoi,f ; provide a look-up table to obatin a more accurate ratio of wA/wk
+
+  ;you may need to change your path to the below table '/path_to/w_A_factor_table.sav'
+  restore,'w_A_factor_table.sav' ;rhoi,f ; provide a look-up table to obatin a more accurate ratio of wA/wk
   f_ip = interpol(f,rhoi,roi) 
   wA = wk * f_ip
   wD = (wA-wk)/2.0
@@ -127,7 +87,103 @@ function nonlinear_model_v3,t,pars,_extra=_extra
 
 end
 
+function nonlinear_model_v3,t,pars,_extra=_extra
+  compile_opt idl2
+  ;6-parameter nonlinear function (using C1/R as one par), the density profile is provided in a pre-computed table.
+  ;you may need to change your path to the directory include sici.pro and : cd,'/path_to/sici.pro'
+  ;.compile -v 'sici.pro'
+
+  k = pars[0]*4/!dpi ;C1/H; ;H = !dpi*R/4; par[0] = C1/R; R in km
+  roi = pars[1]
+  roe = 1. ;external
+  Vi = pars[2] ;initial velocity
+  dV = 1.1*Vi ;delta_V
+  period_k = pars[3]*1d ;period of kink oscillations, in second
+  wk = 2*!dpi/period_k ;wk, angular frequency, =2*!pi/P
+
+ ;you may need to change your path to the below table '/path_to/w_A_factor_table.sav'
+  restore,'w_A_factor_table.sav' ;rhoi,f ; provide a look-up table to obatin a more accurate ratio of wA/wk
+  ;ind = where(rhoi ge round(roi*10)/10d)
+  ;wA = wk * f[ind[0]]
+  f_ip = interpol(f,rhoi,roi)
+  wA = wk * f_ip
+  wD = (wA-wk)/2.0
+  wS = (wA+wk)/2.0
+  percent = pars[4]
+
+  zeta_max = sqrt(roi*1d) ;mass convervation
+  zeta = zeta_max * percent
+  max_y1 = 1./(sqrt(roi)+1d) ;length /2.
+  delta_m = zeta - max_y1*roi ;don't have to /2. any more
+
+  t0 = pars[5]
+
+  t1 = t-t0
+  M_bar = zeta*(Vi - dV*sqrt(roe)/(sqrt(roi)+sqrt(roe))) ;0.24
+
+  ;E = 2*R*H*roi ;mass
+  ;A = E*Vi ;momentum
+  A_o_E = Vi;A/E
+  D_o_E = k/(2.0*roi)*M_bar*(roi*roe)^(0.25)/(sqrt(roi)+sqrt(roe))*dV/wD 
+  B = k/2.0*sqrt(roe)/(sqrt(roi)+sqrt(roe))*(roi*roe)^(0.25)/(sqrt(roi)+sqrt(roe))*dV
+  G = delta_m*k/(2*roi)*(roi*roe)^(0.25)/(sqrt(roi)+sqrt(roe))*dV
+  A1 = A_o_E/((G^2))*(-B*G*sin(wk*t1)/wk+(B+G)*(cos(wk/G)*(sici(wk*(t1+1/G)))[1,*]+sin(wk/G)*(sici(wk*(t1+1/G)))[0,*]))
+  A2 = D_o_E/(2*G)*(-cos(wk/G)*(sici(wk*(t1+1/G)))[0,*]+sin(wk/G)*(sici(wk*(t1+1/G)))[1,*]+$
+    cos(wA/G)*(sici(wA*(t1+1/G)))[0,*]-sin(wA/G)*(sici(wA*(t1+1/G)))[1,*])
+
+  func = A1+A2-mean(A1+A2) ;A1+A2-A1[0]-A2[0]
+  return,func/1d3 ;in Mm
+
+end
+
 pro mcmc_nonlinear_v3
+
+  restore,'nl_data_30percentnoise_v7.sav',/v
+  y/=1d3
+  cgplot,x,y,psym=1
+
+  ;set priors
+    priors = [prior_uniform(1.0e-05,0.3e-3),$; C1/H ; 0.2e-3;[1.27e-05,0.3e-3]-->C1/R \in [1e-05,0.3e-03]
+      prior_uniform(1d,5d),$ ;roi
+      prior_uniform(30d,100d),$ ;Vi, in km/s
+      prior_uniform(280d,320d),$ ; kink period
+      prior_uniform(0.00001d,1d),$ ;percent for zeta
+      prior_uniform(-20d,20d)] ;t0
+
+  pars = [0.00015,3.,60,300,0.14,0d] ;4-cycle; in km
+
+  ;define the number of samples
+  n_samples = 100000l
+  ;define the number of burn in samples
+  burn_in = 50000l
+  ;run MCMC fitting
+  fit = mcmc_fit(x, y, pars, "nonlinear_model_v3", priors = priors, burn_in = burn_in,$ 
+    n_samples = n_samples, samples = samples, ppd_samples=ppd_samples, credible_intervals = credible_intervals)
+  print,'best fitted params are:',pars;output pars that best fit the data with the given function
+  print,'C1/R',credible_intervals[0,*]
+  print,'roi',credible_intervals[1,*]
+  print,'Vi',credible_intervals[2,*]
+  print,'period_k',credible_intervals[3,*]
+  print,'zeta percent',credible_intervals[4,*]
+  print,'t0',credible_intervals[5,*]
+
+  wdef,1,1400,700
+  title=['C1/R [km-1]','roi','Vi [km/s]','P_k [s]','eta','t0'] 
+  !p.multi=[0,3,2]
+  for k=0,5 do begin
+    cgHistoplot,samples[k,*],title=title[k],charsize=3
+    cgoplot,[credible_intervals[k,0],credible_intervals[k,0]],[0,100000],color='green'
+    cgoplot,[credible_intervals[k,1],credible_intervals[k,1]],[0,100000],color='green'
+    cgoplot,[pars[k],pars[k]],[0,100000],color='red'
+  endfor
+  !p.multi=0
+  
+  evidence = mcmc_fit_evidence(samples, x, y, priors, 'nonlinear_model_v3', n_iterations = 1d5) ;errors=yerr
+  print, 'evidence of nonlinear model:', evidence
+
+end
+
+pro mcmc_nonlinear_v2
   ;This procedure fit the data wih 7-parameter nonlinear function
   
   restore,'nl_data_30percentnoise_v7.sav',/v
@@ -149,7 +205,7 @@ pro mcmc_nonlinear_v3
   ;define the number of burn in samples
   burn_in = 50000l
   ;run MCMC fitting
-  fit = mcmc_fit(x, y, pars, "nonlinear_model_v3", priors = priors, burn_in = burn_in,$ 
+  fit = mcmc_fit(x, y, pars, "nonlinear_model_v2", priors = priors, burn_in = burn_in,$ 
     n_samples = n_samples, samples = samples, ppd_samples=ppd_samples, credible_intervals = credible_intervals)
   print,'best fitted params are:',pars;output pars that best fit the data with the given function
   print,'R',credible_intervals[0,*]
@@ -171,7 +227,7 @@ pro mcmc_nonlinear_v3
   endfor
   !p.multi=0
 
-  evidence = mcmc_fit_evidence(samples, x, y, priors, 'nonlinear_model_v3', n_iterations = 1d5) 
+  evidence = mcmc_fit_evidence(samples, x, y, priors, 'nonlinear_model_v2', n_iterations = 1d5) 
   print, 'evidence of nonlinear model:', evidence
 
 
