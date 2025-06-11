@@ -1,9 +1,9 @@
 def nonlinear_model(t, R, roi, period_k, period_A, Vi, delta_m, zeta, C1=0.3):
     """nonlinear damping function by KHI-induced turbulence 
     t: time
-    R: loop radius, R=0.3; in km
-    roi: internal density compared to external density roe=1, default=3 ;dimensionless
-    zeta: unit mass of mixing layer used to calculate the M_bar, default=0.24
+    R: loop radius in km
+    roi: internal density compared to external density roe=1 ;dimensionless
+    zeta: unit mass of mixing layer used to calculate the M_bar, ;if roi=3,zeta=0.24
     period_k: in seconds, oscillation period of kink mode; wk=2*pi/period_k angular frequency of kink mode
     period_A: -->wA: Alfven frequency in the mixing layer; in second
     Vi: initial velocity perturbation, in km/s
