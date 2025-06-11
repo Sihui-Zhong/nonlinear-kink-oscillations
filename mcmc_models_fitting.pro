@@ -103,8 +103,6 @@ function nonlinear_model_v3,t,pars,_extra=_extra
 
  ;you may need to change your path to the below table '/path_to/w_A_factor_table.sav'
   restore,'w_A_factor_table.sav' ;rhoi,f ; provide a look-up table to obatin a more accurate ratio of wA/wk
-  ;ind = where(rhoi ge round(roi*10)/10d)
-  ;wA = wk * f[ind[0]]
   f_ip = interpol(f,rhoi,roi)
   wA = wk * f_ip
   wD = (wA-wk)/2.0
