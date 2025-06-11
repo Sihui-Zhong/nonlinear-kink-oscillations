@@ -35,7 +35,7 @@ function nonlinear_model,t,pars,_extra=_extra
   A1 = A/(E*(G^2))*(-B*G*sin(wk*t1)/wk+(B+G)*(cos(wk/G)*(sici(wk*(t1+1/G)))[1,*]+sin(wk/G)*(sici(wk*(t1+1/G)))[0,*]))
   A2 = D/(2*E*G)*(-cos(wk/G)*(sici(wk*(t1+1/G)))[0,*]+sin(wk/G)*(sici(wk*(t1+1/G)))[1,*]+$
     cos(wA/G)*(sici(wA*(t1+1/G)))[0,*]-sin(wA/G)*(sici(wA*(t1+1/G)))[1,*])  
-  func = A1+A2-mean(A1+A2) ;A1+A2-A1[0]-A2[0]
+  func = A1+A2-A1[0]-A2[0] ;A1+A2-mean(A1+A2) 
   return,func
   
 end
@@ -82,7 +82,7 @@ function nonlinear_model_v2,t,pars,_extra=_extra
   A1 = A/(E*(G^2))*(-B*G*sin(wk*t1)/wk+(B+G)*(cos(wk/G)*(sici(wk*(t1+1/G)))[1,*]+sin(wk/G)*(sici(wk*(t1+1/G)))[0,*]))
   A2 = D/(2*E*G)*(-cos(wk/G)*(sici(wk*(t1+1/G)))[0,*]+sin(wk/G)*(sici(wk*(t1+1/G)))[1,*]+$
     cos(wA/G)*(sici(wA*(t1+1/G)))[0,*]-sin(wA/G)*(sici(wA*(t1+1/G)))[1,*])
-  func = A1+A2-mean(A1+A2) ;A1+A2-A1[0]-A2[0]
+  func = A1+A2-A1[0]-A2[0] ;A1+A2-mean(A1+A2) 
   return,func/1d3 ;in Mm
 
 end
@@ -131,7 +131,7 @@ function nonlinear_model_v3,t,pars,_extra=_extra
   A2 = D_o_E/(2*G)*(-cos(wk/G)*(sici(wk*(t1+1/G)))[0,*]+sin(wk/G)*(sici(wk*(t1+1/G)))[1,*]+$
     cos(wA/G)*(sici(wA*(t1+1/G)))[0,*]-sin(wA/G)*(sici(wA*(t1+1/G)))[1,*])
 
-  func = A1+A2-mean(A1+A2) ;A1+A2-A1[0]-A2[0]
+  func = A1+A2-A1[0]-A2[0] ;A1+A2-mean(A1+A2) 
   return,func/1d3 ;in Mm
 
 end
