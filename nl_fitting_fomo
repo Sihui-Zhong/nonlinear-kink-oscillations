@@ -1,0 +1,185 @@
+;This procedure is to fit the pair of oscillation signals in two wavelengths with nonlinear turbulence damping functions
+;Calling sequence:
+;IDL> nl_fitting_fomo
+
+function nonlinear_model_4fomo_line1,t,pars,_extra=_extra
+  compile_opt idl2
+  ;.compile -v '/Users/sihuizhong/Documents/Exeter/KHI/sici.pro'
+  k = pars[0]*4/!dpi ;C1/R, R =loop radius in Mm
+  ;H = !dpi*R/4
+  roi = pars[1]
+  roe = 1. ;external
+
+  Vi = pars[2] ;initial velocity in Mm/s
+  dV = 1.1*Vi ;delta_V
+  period_k = pars[3]*1d ;period of kink oscillations
+  wk = 2*!dpi/period_k ;wk, angular frequency, =2*!pi/P
+
+  restore,'/home/sihuizhong/Documents/KHI/mcmc/w_A_factor_table.sav' ;rhoi,f
+  f_ip = interpol(f,rhoi,roi)
+  wA = wk * f_ip
+  wD = (wA-wk)/2.0
+  wS = (wA+wk)/2.0
+  percent = pars[4]
+  ratio = pars[5] ;eta1/eta2
+  
+  zeta_max = sqrt(roi*1d) ;mass convervation
+  zeta = zeta_max * percent * ratio
+  max_y1 = 1./(sqrt(roi)+1d) ;length /2.
+  delta_m = zeta - max_y1*roi ;don't have to /2. any more
+
+
+  t1 = t 
+  M_bar = zeta*(Vi - dV*sqrt(roe)/(sqrt(roi)+sqrt(roe))) ;0.24
+
+  ;E = 2*R*H*roi ;mass
+  ;A = E*Vi ;momentum
+  A_o_E = Vi
+  D_o_E = k/(2.0*roi)*M_bar*(roi*roe)^(0.25)/(sqrt(roi)+sqrt(roe))*dV/wD
+  B = k/2.0*sqrt(roe)/(sqrt(roi)+sqrt(roe))*(roi*roe)^(0.25)/(sqrt(roi)+sqrt(roe))*dV
+  G = delta_m*k/(2*roi)*(roi*roe)^(0.25)/(sqrt(roi)+sqrt(roe))*dV
+  A1 = A_o_E/((G^2))*(-B*G*sin(wk*t1)/wk+(B+G)*(cos(wk/G)*(sici(wk*(t1+1/G)))[1,*]+sin(wk/G)*(sici(wk*(t1+1/G)))[0,*]))
+  A2 = D_o_E/(2*G)*(-cos(wk/G)*(sici(wk*(t1+1/G)))[0,*]+sin(wk/G)*(sici(wk*(t1+1/G)))[1,*]+$
+    cos(wA/G)*(sici(wA*(t1+1/G)))[0,*]-sin(wA/G)*(sici(wA*(t1+1/G)))[1,*])
+  func = A1+A2-A1[0]-A2[0] ;A1+A2-mean(A1+A2)  
+  return,func 
+
+end
+
+function nonlinear_model_4fomo_line2,t,pars,_extra=_extra
+  compile_opt idl2
+  ;.compile -v '/Users/sihuizhong/Documents/Exeter/KHI/sici.pro'
+  k = pars[0]*4d/!dpi
+  roi = pars[1]
+  roe = 1. ;external
+  Vi = pars[2] ;initial velocity in Mm/s
+  dV = 1.1*Vi ;delta_V
+  period_k = pars[3]*1d ;period of kink oscillations
+  wk = 2*!dpi/period_k ;wk, angular frequency, =2*!pi/P
+
+  restore,'/home/sihuizhong/Documents/KHI/mcmc/w_A_factor_table.sav' ;rhoi,f
+  f_ip = interpol(f,rhoi,roi)
+  wA = wk * f_ip
+  wD = (wA-wk)/2.0
+  wS = (wA+wk)/2.0
+  percent = pars[4]
+  ratio = pars[5] ;eta1/eta2
+  
+  zeta_max = sqrt(roi*1d) ;mass convervation
+  zeta = zeta_max * percent
+  max_y1 = 1./(sqrt(roi)+1d) ;length /2.
+  delta_m = zeta - max_y1*roi ;don't have to /2. any more
+
+
+  t1 = t 
+  M_bar = zeta*(Vi - dV*sqrt(roe)/(sqrt(roi)+sqrt(roe))) ;0.24
+
+  A_o_E = Vi
+  D_o_E = k/(2.0*roi)*M_bar*(roi*roe)^(0.25)/(sqrt(roi)+sqrt(roe))*dV/wD
+  B = k/2.0*sqrt(roe)/(sqrt(roi)+sqrt(roe))*(roi*roe)^(0.25)/(sqrt(roi)+sqrt(roe))*dV
+  G = delta_m*k/(2*roi)*(roi*roe)^(0.25)/(sqrt(roi)+sqrt(roe))*dV
+  A1 = A_o_E/((G^2))*(-B*G*sin(wk*t1)/wk+(B+G)*(cos(wk/G)*(sici(wk*(t1+1/G)))[1,*]+sin(wk/G)*(sici(wk*(t1+1/G)))[0,*]))
+  A2 = D_o_E/(2*G)*(-cos(wk/G)*(sici(wk*(t1+1/G)))[0,*]+sin(wk/G)*(sici(wk*(t1+1/G)))[1,*]+$
+    cos(wA/G)*(sici(wA*(t1+1/G)))[0,*]-sin(wA/G)*(sici(wA*(t1+1/G)))[1,*])
+  func = A1+A2-A1[0]-A2[0] ;A1+A2-mean(A1+A2)
+  
+  return,func 
+
+end
+
+pro nl_fitting_fomo
+
+  ;load data, two time series of 171 and 193/211 respectively
+  folder = '/media/sihuizhong/My\ Book/Zhong_loop7/result/'
+  ;cd,folder
+  cd,'/home/sihuizhong/Documents/paper2/fit_yita/'
+  restore,folder+'fomo_imag_aia_171_z=00262_line1_GaussFit_degradeAIA.sav',/v
+  ;t_loop*4,centre
+  dt = 1  ;0.8
+  x = t_loop*dt
+  y1 = (centre-centre[0])*0.44 ;in Mm A_171
+  startc = centre[0]
+  err1 = centre_err*0.44
+
+  ;A_171_norm = ((centre-min(centre))/(max(centre)-min(centre))-0.5)*2
+  restore,folder+'fomo_imag_aia_193_z=00262_line1_GaussFit_degradeAIA.sav',/v
+  y2 = (centre-startc)*0.44 ;in Mm
+  err2 = centre_err*0.44
+  err = list(err1,err2)
+
+  cgplot,x,y1
+  cgoplot,x,y2,color='blue'
+  ;stop
+  ;set prior
+ ; priors = [prior_uniform(0.1,1d),$; C1/R;loop radius in Mm
+ ;   prior_uniform(1d,5d),$ ;roi
+ ;   prior_uniform(0.05d,0.3d),$ ;Vi, in Mm/s
+ ;   prior_uniform(25d,50d),$ ; kink period
+ ;   prior_uniform(0.00001d,1d),$ ;percent for zeta
+ ;   prior_uniform(0.001d,1d)] ;percentage of eta_1 ; eta2/eta1
+
+  limits = dblarr(6,2)
+  limits[0,*]=[0.1,1d]
+  limits[1,*]=[1,4.5d]
+  limits[2,*]=[0.05,0.3d]
+  limits[3,*]=[20,50d] ;[20,40] for zhong_loop3
+  limits[4,*]=[0.01,1d]
+  limits[5,*]=[0.01,1d]
+  
+  ;initial guess
+  ;pars = [0.3d,3.,0.11*2,35.0,0.7,0.5d] ;loop3
+  pars = [0.4,4.0,0.15,40,0.9,0.5d] ;loop7, roi=4
+
+  ;define the number of samples
+  n_samples = 100000l
+  ;define the number of burn in samples
+  burn_in = 50000l
+  ;run MCMC fitting
+  fit = mcmc_fit(list(x,x), list(y1,y2), pars, ["nonlinear_model_4fomo_line1","nonlinear_model_4fomo_line2"], limits = limits, burn_in = burn_in,errors=err,$ ;errors=yerr,
+    n_samples = n_samples, samples = samples, ppd_samples=ppd_samples, credible_intervals = credible_intervals)
+  print,'best fitted params are:',pars;output pars that best fit the data with the given function
+  print,'C1/R',credible_intervals[0,*]
+  print,'roi',credible_intervals[1,*]
+  print,'Vi',credible_intervals[2,*]
+  print,'period_k',credible_intervals[3,*]
+  print,'zeta percent',credible_intervals[4,*]
+  print,'ratio',credible_intervals[5,*]
+  
+  wdef,1,1400,700
+  title=['C1/R','roi','Vi','P_k','eta','ratio'] ;'Delta_m'
+  !p.multi=[0,3,2]
+  for k=0,5 do begin
+    cgHistoplot,samples[k,*],title=title[k],charsize=3
+    cgoplot,[credible_intervals[k,0],credible_intervals[k,0]],[0,100000],color='green'
+    cgoplot,[credible_intervals[k,1],credible_intervals[k,1]],[0,100000],color='green'
+    cgoplot,[pars[k],pars[k]],[0,100000],color='red'
+  endfor
+  !p.multi=0
+
+
+  wdef,0,700,700
+  nbins=500
+  ppd1=mcmc_ppd_histogram(x,y1,ppd_samples[0], nbins = nbins, hist_x = hist_x1, hist_y = hist_y1)
+  range = minmax(hist_y1) & yrange=range[1]-range[0]
+  range = minmax(hist_x1) & xrange=range[1]-range[0]
+  !p.multi=[0,1,2]
+  loadct,0
+  contour,sigrange(1.- ppd1/max(ppd1),frac=0.999), hist_x1, hist_y1,/fill, nlevels = 255,/xsty,/ysty,charsize=2,$
+    xtitle='!X Time [s]', ytitle='Displacement ',color=255, xrange = [0,max(x)],yrange=[min(y1)*1.5,max(y1)*1.5];,/xlog,/ylog
+  cgoplot,x,y1,psym=16,symsize=0.6,color='blue'
+  cgoplot,x,fit[0],color='red'
+
+  ppd2=mcmc_ppd_histogram(x,y2,ppd_samples[1], nbins = nbins, hist_x = hist_x2, hist_y = hist_y2)
+  range = minmax(hist_y2) & yrange=range[1]-range[0]
+  range = minmax(hist_x2) & xrange=range[1]-range[0]
+
+  loadct,0
+  contour,sigrange(1.- ppd2/max(ppd2),frac=0.999), hist_x2, hist_y2,/fill, nlevels = 255,/xsty,/ysty,charsize=2,$
+    xtitle='!X Time [s]', ytitle='Displacement ',color=255, xrange = [0,max(x)],yrange=[min(y2)*1.5,max(y2)*1.5];,/xlog,/ylog
+  cgoplot,x,y2,psym=16,symsize=0.6,color='blue'
+  cgoplot,x,fit[1],color='red'
+  !p.multi=0  
+  
+  save,filename='loop7_mcmcfit_171_193_2.sav',x,y1,y2,err,fit,pars,priors,samples,ppd_samples,credible_intervals,/verbose
+
+end
